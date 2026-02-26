@@ -277,14 +277,3 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-A couple of things to note. The scout agent pulls from both Telegram and Exa, deduplicates, fetches company context from Glassdoor and NodeFlair via Exa, scores each listing with Claude, and saves results to an `output/` folder as a JSON file. The output file is named with today's date in YYMMDD format so results are easy to find and sort.
-
-Also add `exa-py` to your `requirements.txt`:
-```
-google-api-python-client
-google-auth
-telethon
-exa-py
-anthropic
-requests
-pyyaml
