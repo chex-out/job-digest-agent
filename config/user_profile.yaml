@@ -1,0 +1,98 @@
+# Personal Job Market Digest — User Profile
+# Last updated: 2026-02-25
+
+# ── Role Preferences ──────────────────────────────────────────────────────────
+desired_role:
+  titles_broad:
+    - Marketing Manager
+    - Digital Marketing Manager
+    - Marketing Operations Manager
+    - Marketing Lead
+    - Growth Marketing Manager
+    - Senior Marketing Manager
+    - Head of Marketing
+  seniority:
+    - Manager
+    - Lead
+    - Senior Manager
+    - Head
+  progression_type:
+    - Individual contributor at manager or lead level
+    - People manager
+  preferred_industries:
+    - SaaS
+    - Technology
+    - Fintech
+    - E-commerce
+    - Consumer tech
+    - B2B tech
+    - Healthcare tech
+    - Edtech
+  avoid_industries:
+    - Print media
+    - Manufacturing
+    - Hardware
+    - Traditional retail
+    - Sunset industries
+  notes: >
+    Open to more senior roles where existing experience applies.
+    Prefer roles with clear career progression signal.
+    Little to no people management experience — open to first-time manager roles.
+
+# ── Company Preferences ───────────────────────────────────────────────────────
+company_preferences:
+  preferred_types:
+    - Singapore-based regional HQ
+    - Global MNC with large Singapore office
+    - Large well-established Singapore company
+    - High-growth tech startup
+  avoid_types:
+    - Singapore SME
+    - Hardware companies
+    - Companies in sunset or historically traditional industries
+  startup_stage_preference:
+    - Series B and above
+
+# ── Search Configuration ──────────────────────────────────────────────────────
+search:
+  job_boards:
+    - LinkedIn
+    - JobStreet
+    - Glassdoor
+    - Indeed
+  location: Singapore
+  search_terms:
+    - marketing manager tech Singapore
+    - marketing lead SaaS Singapore
+    - marketing operations Singapore regional
+    - growth marketing manager Singapore
+  results_per_term: 10
+
+# ── Additional Sources ────────────────────────────────────────────────────────
+telegram:
+  enabled: true
+  source: direct_messages
+  bot_username:                # Username of the Telegram bot sending you listings
+  lookback_days: 7             # How far back to fetch on each weekly run
+
+# ── Scoring & Thresholds ─────────────────────────────────────────────────────
+scoring:
+  preparer_threshold: 8        # Minimum role fit score (out of 10) to trigger preparer agent
+  dimensions:
+    - role_fit                 # How well the role matches desired titles, seniority, progression
+    - skills_match             # How well your current skillset matches the JD requirements
+
+# ── Feedback & Preference Synthesis ──────────────────────────────────────────
+feedback:
+  synthesis_frequency: weekly  # Options: weekly, monthly
+  synthesis_changelog: true    # Claude summarises what changed after each synthesis run
+
+# ── Google Drive ──────────────────────────────────────────────────────────────
+google_drive:
+  job_applications_folder_id: 1NaKIPZYVmsofoFvWE8plXf4lnSuT5WKC
+  subfolder_naming: "YYMMDD [Company] [Role]"  # e.g. 260225 Stripe Marketing Manager
+
+# ── Review Sources ────────────────────────────────────────────────────────────
+review_sources:
+  - glassdoor                  # Via Exa, filtered for Singapore reviews where possible
+  - nodeflair                  # Singapore-specific salary and company reviews
