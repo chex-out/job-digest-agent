@@ -72,7 +72,7 @@ search:
 telegram:
   enabled: true
   source: direct_messages
-  bot_username:                # Username of the Telegram bot sending you listings
+  bot_username: justpostedjobsbot               # Username of the Telegram bot sending you listings
   lookback_days: 7             # How far back to fetch on each weekly run
 
 # ── Scoring & Thresholds ─────────────────────────────────────────────────────
