@@ -49,7 +49,8 @@ def create_application_folder(drive_service, company, role):
 
     folder = drive_service.files().create(
         body=folder_metadata,
-        fields="id, name"
+        fields="id, name",
+        supportsAllDrives=True
     ).execute()
 
     print(f"  [Drive] Created folder: {folder['name']}")
@@ -68,12 +69,12 @@ def create_google_doc(drive_service, docs_service, folder_id, title, content):
 
     doc = drive_service.files().create(
         body=doc_metadata,
-        fields="id"
+        fields="id",
+        supportsAllDrives=True
     ).execute()
 
     doc_id = doc["id"]
 
-    # Insert content into the document
     docs_service.documents().batchUpdate(
         documentId=doc_id,
         body={
