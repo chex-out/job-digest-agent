@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import yaml
 import asyncio
@@ -45,12 +46,12 @@ def parse_telegram_listing(raw_text):
     """Use Claude to parse a raw Telegram message into structured listing data."""
     prompt = f"""Extract job listing details from this Telegram message and return a JSON object with these fields:
 - job_title (string)
-- company (string)  
+- company (string)
 - location (string)
 - apply_url (string)
 - description (string, any additional details available)
 
-If a field is not found, use null. Return only valid JSON, no other text.
+If a field is not found, use null. Return only valid JSON with no markdown, no code fences, no other text.
 
 Message:
 {raw_text}"""
@@ -61,9 +62,14 @@ Message:
         messages=[{"role": "user", "content": prompt}]
     )
 
+    raw = response.content[0].text.strip()
+    raw = re.sub(r"^```json\n?", "", raw)
+    raw = re.sub(r"\n?```$", "", raw).strip()
+
     try:
-        return json.loads(response.content[0].text)
+        return json.loads(raw)
     except json.JSONDecodeError:
+        print(f"  [Telegram] Failed to parse: {raw[:100]}")
         return None
 
 
@@ -114,7 +120,28 @@ def deduplicate_listings(listings):
             unique.append(listing)
     print(f"  [Dedup] {len(unique)} unique listings after deduplication")
     return unique
+    
+def is_individual_listing(listing):
+    """Filter out search result pages and non-job content."""
+    title = listing.get("job_title", "")
+    url = listing.get("apply_url", "")
 
+    # Exclude LinkedIn search result pages
+    if "linkedin.com/jobs/search" in url:
+        return False
+    if "jobstreet.com/jobs" in url and "?" in url:
+        return False
+
+    # Exclude titles that look like search result pages
+    noise_phrases = [
+        "jobs in singapore", "jobs in", "(with salaries)",
+        "new)", "posted on the topic", "| linkedin at"
+    ]
+    title_lower = title.lower()
+    if any(phrase in title_lower for phrase in noise_phrases):
+        return False
+
+    return True
 
 # ── Redirect Resolver ─────────────────────────────────────────────────────────
 
@@ -217,9 +244,14 @@ Return a JSON object only with these fields:
         messages=[{"role": "user", "content": prompt}]
     )
 
+    raw = response.content[0].text.strip()
+    raw = re.sub(r"^```json\n?", "", raw)
+    raw = re.sub(r"\n?```$", "", raw).strip()
+
     try:
-        return json.loads(response.content[0].text)
+        return json.loads(raw)
     except json.JSONDecodeError:
+        print(f"  [Score] Failed to parse score for {listing.get('job_title')}: {raw[:100]}")
         return None
 
 
@@ -249,6 +281,8 @@ async def main():
 
     # Deduplicate
     all_listings = deduplicate_listings(all_listings)
+    all_listings = [l for l in all_listings if is_individual_listing(l)]
+    print(f"  [Filter] {len(all_listings)} listings after filtering search result pages")
 
     # Score each listing
     print(f"Scoring {len(all_listings)} listings...")
