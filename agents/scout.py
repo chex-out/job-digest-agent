@@ -93,28 +93,28 @@ def fetch_exa_listings():
                 text={"max_characters": 2000}
             )
             for result in results.results:
-            # Clean up LinkedIn-style titles like "Company hiring Role in Location"
-            raw_title = result.title or ""
-            clean_title = raw_title
-            if " hiring " in raw_title:
-                clean_title = raw_title.split(" hiring ")[1]
-            if " in Singapore" in clean_title:
-                clean_title = clean_title.split(" in Singapore")[0]
-            if " | LinkedIn" in clean_title:
-                clean_title = clean_title.split(" | LinkedIn")[0]
-        
-            # Extract company name
-            company = None
-            if " hiring " in raw_title:
-                company = raw_title.split(" hiring ")[0].strip()
-        
-            listings.append({
-                "job_title": clean_title.strip(),
-                "company": company,
-                "location": location,
-                "apply_url": result.url,
-                "description": result.text
-            })
+                # Clean up LinkedIn-style titles like "Company hiring Role in Location"
+                raw_title = result.title or ""
+                clean_title = raw_title
+                if " hiring " in raw_title:
+                    clean_title = raw_title.split(" hiring ")[1]
+                if " in Singapore" in clean_title:
+                    clean_title = clean_title.split(" in Singapore")[0]
+                if " | LinkedIn" in clean_title:
+                    clean_title = clean_title.split(" | LinkedIn")[0]
+
+                # Extract company name
+                company = None
+                if " hiring " in raw_title:
+                    company = raw_title.split(" hiring ")[0].strip()
+
+                listings.append({
+                    "job_title": clean_title.strip(),
+                    "company": company,
+                    "location": location,
+                    "apply_url": result.url,
+                    "description": result.text
+                })
         except Exception as e:
             print(f"  [Exa] Error for term '{term}': {e}")
 
