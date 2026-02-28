@@ -54,13 +54,14 @@ def create_application_folder(drive_service, company, role):
     ).execute()
 
     print(f"  [Drive] Created folder: {folder['name']}")
+    transfer_ownership(drive_service, folder["id"])
     return folder["id"], folder["name"]
 
 
 # ── Google Doc Creation ───────────────────────────────────────────────────────
 
 def create_google_doc(drive_service, docs_service, folder_id, title, content):
-    """Create a Google Doc with the given content inside the specified folder."""
+    """Create a Google Doc inside the specified folder."""
     doc_metadata = {
         "name": title,
         "mimeType": "application/vnd.google-apps.document",
@@ -75,21 +76,44 @@ def create_google_doc(drive_service, docs_service, folder_id, title, content):
 
     doc_id = doc["id"]
 
-    docs_service.documents().batchUpdate(
-        documentId=doc_id,
-        body={
-            "requests": [{
-                "insertText": {
-                    "location": {"index": 1},
-                    "text": content
-                }
-            }]
-        }
-    ).execute()
+    content_chunks = [content[i:i+40000] for i in range(0, len(content), 40000)]
+    requests = []
+    for chunk in reversed(content_chunks):
+        requests.append({
+            "insertText": {
+                "location": {"index": 1},
+                "text": chunk
+            }
+        })
+
+    if requests:
+        docs_service.documents().batchUpdate(
+            documentId=doc_id,
+            body={"requests": requests}
+        ).execute()
+
+    # Transfer ownership to personal account
+    transfer_ownership(drive_service, doc_id)
 
     doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
     print(f"  [Docs] Created doc: {title}")
     return doc_id, doc_url
+
+def transfer_ownership(drive_service, file_id):
+    """Transfer ownership of a file to the personal Google account."""
+    try:
+        drive_service.permissions().create(
+            fileId=file_id,
+            transferOwnership=True,
+            body={
+                "type": "user",
+                "role": "owner",
+                "emailAddress": "lee.abraham.e@gmail.com"
+            }
+        ).execute()
+        print(f"  [Drive] Ownership transferred for file {file_id}")
+    except Exception as e:
+        print(f"  [Drive] Ownership transfer failed: {e}")
 
 
 # ── Resume Tailoring ──────────────────────────────────────────────────────────
