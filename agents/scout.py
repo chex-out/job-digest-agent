@@ -83,7 +83,6 @@ def fetch_exa_listings():
             results = exa.search_and_contents(
                 query,
                 num_results=results_per_term,
-                use_autoprompt=True,
                 include_domains=["linkedin.com", "jobstreet.com", "glassdoor.com", "indeed.com"],
                 text={"max_characters": 2000}
             )
@@ -234,8 +233,10 @@ async def main():
     if profile.get("telegram", {}).get("enabled"):
         print("Fetching from Telegram...")
         raw_messages = await fetch_telegram_listings()
-        for msg in raw_messages:
+        for msg in raw_messages[:3]:  # Print first 3 messages for debugging
+            print(f"  [Debug] Raw message: {msg[:200]}")
             parsed = parse_telegram_listing(msg)
+            print(f"  [Debug] Parsed: {parsed}")
             if parsed:
                 if parsed.get("apply_url"):
                     parsed["apply_url"] = resolve_redirect(parsed["apply_url"])
