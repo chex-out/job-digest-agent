@@ -3,7 +3,8 @@ import json
 import yaml
 import anthropic
 from datetime import datetime
-from google.oauth2.service_account import Credentials
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
 # ── Load Config ───────────────────────────────────────────────────────────────
@@ -22,12 +23,22 @@ with open("config/cover_letter.md", "r") as f:
 anthropic_client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 def get_drive_service():
-    """Authenticate and return Google Drive and Docs service clients."""
-    creds_json = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
-    creds = Credentials.from_service_account_info(creds_json, scopes=[
-        "https://www.googleapis.com/auth/drive",
-        "https://www.googleapis.com/auth/documents"
-    ])
+    """Authenticate using OAuth and return Google Drive and Docs service clients."""
+    token_data = json.loads(os.environ["GOOGLE_OAUTH_TOKEN"])
+
+    creds = Credentials(
+        token=token_data["token"],
+        refresh_token=token_data["refresh_token"],
+        token_uri=token_data["token_uri"],
+        client_id=token_data["client_id"],
+        client_secret=token_data["client_secret"],
+        scopes=token_data["scopes"]
+    )
+
+    # Refresh token if expired
+    if creds.expired:
+        creds.refresh(Request())
+
     drive_service = build("drive", "v3", credentials=creds)
     docs_service = build("docs", "v1", credentials=creds)
     return drive_service, docs_service
@@ -49,12 +60,10 @@ def create_application_folder(drive_service, company, role):
 
     folder = drive_service.files().create(
         body=folder_metadata,
-        fields="id, name",
-        supportsAllDrives=True
+        fields="id, name"
     ).execute()
 
     print(f"  [Drive] Created folder: {folder['name']}")
-    transfer_ownership(drive_service, folder["id"])
     return folder["id"], folder["name"]
 
 
@@ -70,8 +79,7 @@ def create_google_doc(drive_service, docs_service, folder_id, title, content):
 
     doc = drive_service.files().create(
         body=doc_metadata,
-        fields="id",
-        supportsAllDrives=True
+        fields="id"
     ).execute()
 
     doc_id = doc["id"]
@@ -92,28 +100,9 @@ def create_google_doc(drive_service, docs_service, folder_id, title, content):
             body={"requests": requests}
         ).execute()
 
-    # Transfer ownership to personal account
-    transfer_ownership(drive_service, doc_id)
-
     doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
     print(f"  [Docs] Created doc: {title}")
     return doc_id, doc_url
-
-def transfer_ownership(drive_service, file_id):
-    """Transfer ownership of a file to the personal Google account."""
-    try:
-        drive_service.permissions().create(
-            fileId=file_id,
-            transferOwnership=True,
-            body={
-                "type": "user",
-                "role": "owner",
-                "emailAddress": "lee.abraham.e@gmail.com"
-            }
-        ).execute()
-        print(f"  [Drive] Ownership transferred for file {file_id}")
-    except Exception as e:
-        print(f"  [Drive] Ownership transfer failed: {e}")
 
 
 # ── Resume Tailoring ──────────────────────────────────────────────────────────
