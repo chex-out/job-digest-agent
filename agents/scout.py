@@ -303,25 +303,72 @@ async def main():
         try:
             # Use Exa to fetch page content
             result = exa.get_contents([url], text={"max_characters": 3000})
-            if result.results:
-                page = result.results[0]
+            page = result.results[0] if result.results else None
+            description = (page.text or "").strip() if page else ""
+            title = (page.title or "").strip() if page else ""
+
+            # Detect sparse content and flag for manual review
+            partial_data = len(description) < 200
+
+            if partial_data:
+                print(f"  [Scout] Sparse content detected for {url[:80]} — using fallback")
+                # Ask Claude to infer what it can from URL and title alone
+                fallback_prompt = f"""A job listing URL was fetched but returned little or no content, likely due to JavaScript rendering or bot protection.
+
+URL: {url}
+Page title: {title}
+
+Based on the URL and title alone, extract what you can and return a JSON object with:
+- job_title (string)
+- company (string)
+- location (string, default to "Singapore" if unknown)
+- description (string, write "Limited data available — please review listing directly." plus any inferences you can make from the URL and title)
+- partial_data (boolean, always true in this case)
+
+Return only valid JSON, no code fences."""
+
+                fallback_response = anthropic_client.messages.create(
+                    model="claude-opus-4-6",
+                    max_tokens=500,
+                    messages=[{"role": "user", "content": fallback_prompt}]
+                )
+
+                raw = fallback_response.content[0].text.strip()
+                raw = re.sub(r"^```json\n?", "", raw)
+                raw = re.sub(r"\n?```$", "", raw).strip()
+
+                try:
+                    listing = json.loads(raw)
+                    listing["apply_url"] = url
+                except json.JSONDecodeError:
+                    listing = {
+                        "job_title": title or "Unknown Role",
+                        "company": None,
+                        "location": "Singapore",
+                        "apply_url": url,
+                        "description": "Limited data available — please review listing directly.",
+                        "partial_data": True
+                    }
+            else:
                 listing = {
-                    "job_title": page.title or "Unknown Role",
+                    "job_title": title,
                     "company": None,
                     "location": "Singapore",
                     "apply_url": url,
-                    "description": page.text or ""
+                    "description": description,
+                    "partial_data": False
                 }
 
-                # Clean up LinkedIn-style titles
-                raw_title = listing["job_title"]
-                if " hiring " in raw_title:
-                    listing["company"] = raw_title.split(" hiring ")[0].strip()
-                    listing["job_title"] = raw_title.split(" hiring ")[1].split(" in ")[0].strip()
-                if " | LinkedIn" in listing["job_title"]:
-                    listing["job_title"] = listing["job_title"].split(" | LinkedIn")[0].strip()
+            # Clean up LinkedIn-style titles
+            raw_title = listing.get("job_title", "")
+            if " hiring " in raw_title:
+                listing["company"] = raw_title.split(" hiring ")[0].strip()
+                listing["job_title"] = raw_title.split(" hiring ")[1].split(" in ")[0].strip()
+            if " | LinkedIn" in listing.get("job_title", ""):
+                listing["job_title"] = listing["job_title"].split(" | LinkedIn")[0].strip()
 
-                all_listings.append(listing)
+            all_listings.append(listing)
+
         except Exception as e:
             print(f"  [Scout] Error fetching {url}: {e}")
 
