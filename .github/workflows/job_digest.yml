@@ -31,6 +31,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git rebase origin/main
           git add config/input_listings.yaml || true
           git diff --staged --quiet || git commit -m "Ingestor — updated input listings $(date +'%y%m%d')"
           git push
@@ -59,7 +61,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
+          git fetch origin main
+          git rebase origin/main
           git add config/input_listings.yaml || true
           git add config/processed_listings.yaml || true
           git add output/ || true
@@ -93,7 +96,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
+          git fetch origin main
+          git rebase origin/main
           git add config/feedback_log.yaml || true
           git add config/user_profile_proposed.yaml || true
           git add output/ || true
