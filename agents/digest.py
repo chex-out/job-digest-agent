@@ -25,52 +25,41 @@ def score_colour(score):
         return "#c62828"   # red
 
 
-def build_listing_card(listing, index):
-    """Build an HTML card for a single job listing."""
+def build_listing_card(listing, index, prepared=False):
+    """Build a compact HTML card for a single job listing."""
     role_fit = listing.get("role_fit", 0)
     skills_match = listing.get("skills_match", 0)
-    prepared = listing.get("folder_url") is not None
 
-    folder_section = ""
-    if prepared:
-        folder_section = f"""
-        <div style="margin-top:12px; padding:10px; background:#f0f4ff; border-radius:4px;">
-            <strong>📁 Materials Ready for Review</strong><br>
-            <a href="{listing.get('folder_url')}" style="color:#1a56db;">Open Google Drive Folder</a>
-            <div style="margin-top:8px; font-size:13px; color:#444;">
-                {listing.get('notes_summary', '')[:400]}...
-                <br><a href="{listing.get('folder_url')}" style="color:#1a56db;">Read full notes →</a>
-            </div>
-        </div>"""
+    folder_line = ""
+    if prepared and listing.get("folder_url"):
+        folder_line = f'<li>📁 <a href="{listing.get("folder_url")}" style="color:#1a56db;">Materials ready in Drive</a></li>'
+
+    red_flag_line = f'<li>⚠️ {listing.get("red_flags")}</li>' if listing.get("red_flags") else ""
+    positive_line = f'<li>✅ {listing.get("standout_positives")}</li>' if listing.get("standout_positives") else ""
+    company_line = f'<li>🏢 {listing.get("company_snapshot")}</li>' if listing.get("company_snapshot") else ""
 
     return f"""
-    <div style="margin-bottom:24px; padding:16px; border:1px solid #e0e0e0; border-radius:6px; font-family:Arial,sans-serif;">
-        <div style="font-size:11px; color:#888; margin-bottom:4px;">#{index}</div>
-        <div style="font-size:17px; font-weight:bold; color:#1a1a1a;">{listing.get('job_title', 'Unknown Role')}</div>
-        <div style="font-size:14px; color:#444; margin-bottom:10px;">{listing.get('company', 'Unknown Company')}</div>
-
-        <div style="display:inline-block; margin-right:16px;">
-            <span style="font-size:12px; color:#666;">Role Fit</span><br>
-            <span style="font-size:20px; font-weight:bold; color:{score_colour(role_fit)};">{role_fit}/10</span>
+    <div style="margin-bottom:16px; padding:12px 16px; border:1px solid #e0e0e0; border-radius:6px; font-family:Arial,sans-serif;">
+        <div style="display:flex; justify-content:space-between; align-items:baseline;">
+            <div>
+                <span style="font-size:13px; color:#888;">#{index} &nbsp;</span>
+                <span style="font-size:15px; font-weight:bold; color:#1a1a1a;">{listing.get('job_title', 'Unknown Role')}</span>
+                <span style="font-size:13px; color:#666;"> — {listing.get('company', 'Unknown Company')}</span>
+            </div>
+            <div style="font-size:13px; font-weight:bold; color:{score_colour(role_fit)}; white-space:nowrap;">
+                {role_fit}/10 &nbsp;·&nbsp; <span style="color:{score_colour(skills_match)};">{skills_match}/10</span>
+            </div>
         </div>
-        <div style="display:inline-block;">
-            <span style="font-size:12px; color:#666;">Skills Match</span><br>
-            <span style="font-size:20px; font-weight:bold; color:{score_colour(skills_match)};">{skills_match}/10</span>
-        </div>
-
-        <div style="margin-top:10px; font-size:13px; color:#555;">
-            <strong>Role:</strong> {listing.get('role_fit_rationale', '')}<br>
-            <strong>Skills:</strong> {listing.get('skills_match_rationale', '')}
-        </div>
-
-        {f'<div style="margin-top:8px; font-size:13px; color:#555;"><strong>Company:</strong> {listing.get("company_snapshot", "")}</div>' if listing.get('company_snapshot') else ''}
-        {f'<div style="margin-top:6px; font-size:13px; color:#c62828;"><strong>⚠️ Red Flags:</strong> {listing.get("red_flags")}</div>' if listing.get('red_flags') else ''}
-        {f'<div style="margin-top:6px; font-size:13px; color:#2e7d32;"><strong>✅ Standout:</strong> {listing.get("standout_positives")}</div>' if listing.get('standout_positives') else ''}
-
-        {folder_section}
-
-        <div style="margin-top:12px;">
-            <a href="{listing.get('apply_url', '#')}" style="display:inline-block; padding:8px 16px; background:#1a56db; color:white; text-decoration:none; border-radius:4px; font-size:13px;">View Listing →</a>
+        <ul style="margin:8px 0 0 0; padding-left:18px; font-size:13px; color:#444; line-height:1.6;">
+            <li>🎯 Role: {listing.get('role_fit_rationale', '')}</li>
+            <li>🛠️ Skills: {listing.get('skills_match_rationale', '')}</li>
+            {company_line}
+            {positive_line}
+            {red_flag_line}
+            {folder_line}
+        </ul>
+        <div style="margin-top:8px;">
+            <a href="{listing.get('apply_url', '#')}" style="font-size:12px; color:#1a56db;">View listing →</a>
         </div>
     </div>"""
 
@@ -93,14 +82,14 @@ def build_email_html(all_listings, prepared_listings):
     above_threshold = [l for l in all_listings if l.get("role_fit", 0) >= threshold]
     below_threshold = [l for l in all_listings if l.get("role_fit", 0) < threshold]
 
-    above_cards = "".join([build_listing_card(l, i+1) for i, l in enumerate(above_threshold)])
-    below_cards = "".join([build_listing_card(l, i+1) for i, l in enumerate(below_threshold)])
+    above_cards = "".join([build_listing_card(l, i+1, prepared=True) for i, l in enumerate(above_threshold)])
+    below_cards = "".join([build_listing_card(l, i+1, prepared=False) for i, l in enumerate(below_threshold)])
 
     below_section = ""
     if below_threshold:
         below_section = f"""
-        <h2 style="font-size:16px; color:#888; margin-top:32px;">Other Listings This Week</h2>
-        <p style="font-size:13px; color:#aaa;">Below your {threshold}/10 threshold — no materials prepared.</p>
+        <h2 style="font-size:16px; color:#888; margin-top:32px;">Below Threshold</h2>
+        <p style="font-size:13px; color:#aaa;">Scored below {threshold}/10 — included for visibility only.</p>
         {below_cards}"""
 
     feedback_prompt = """
