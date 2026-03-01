@@ -238,9 +238,11 @@ Score the listing on:
 2. skills_match (1-10): How well does the candidate's current skillset match the requirements in the JD?
 
 Also provide:
-- a brief rationale for each score (1-2 sentences)
-- a company_snapshot: 2-3 sentences summarising culture, management quality, and growth opportunities based on available reviews. Note if reviews are sparse.
-- flag any red flags or standout positives
+- role_fit_rationale: max 15 words
+- skills_match_rationale: max 15 words
+- company_snapshot: max 20 words. Note if reviews are sparse.
+- red_flags: max 10 words or null
+- standout_positives: max 10 words or null
 
 Return a JSON object only with these fields:
 {{
