@@ -33,6 +33,7 @@ def build_listing_card(listing, index, prepared=False):
     folder_line = ""
     if prepared and listing.get("folder_url"):
         folder_line = f'<li>📁 <a href="{listing.get("folder_url")}" style="color:#1a56db;">Materials ready in Drive</a></li>'
+        partial_line = '<li>⚠️ Limited listing data — review the original posting directly before applying</li>' if listing.get("partial_data") else ""
 
     red_flag_line = f'<li>⚠️ {listing.get("red_flags")}</li>' if listing.get("red_flags") else ""
     positive_line = f'<li>✅ {listing.get("standout_positives")}</li>' if listing.get("standout_positives") else ""
@@ -57,6 +58,7 @@ def build_listing_card(listing, index, prepared=False):
             {positive_line}
             {red_flag_line}
             {folder_line}
+            {partial_line}
         </ul>
         <div style="margin-top:8px;">
             <a href="{listing.get('apply_url', '#')}" style="font-size:12px; color:#1a56db;">View listing →</a>
