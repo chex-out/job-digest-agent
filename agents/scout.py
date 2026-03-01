@@ -278,31 +278,55 @@ async def main():
     print("Starting scout agent...")
     all_listings = []
 
-    # Fetch from Telegram
-    if profile.get("telegram", {}).get("enabled"):
-        print("Fetching from Telegram...")
-        raw_messages = await fetch_telegram_listings()
-        for msg in raw_messages[:3]:  # Print first 3 messages for debugging
-            print(f"  [Debug] Raw message: {msg[:200]}")
-            parsed = parse_telegram_listing(msg)
-            print(f"  [Debug] Parsed: {parsed}")
-            if parsed:
-                if parsed.get("apply_url"):
-                    parsed["apply_url"] = resolve_redirect(parsed["apply_url"])
-                all_listings.append(parsed)
+    # Load input listings from file
+    with open("config/input_listings.yaml", "r") as f:
+        input_data = yaml.safe_load(f) or {}
 
-    # Fetch from Exa
-    print("Fetching from Exa...")
-    exa_listings = fetch_exa_listings()
-    all_listings.extend(exa_listings)
+    input_listings = input_data.get("listings", [])
+    if not input_listings:
+        print("  No listings in input_listings.yaml. Add URLs via email and re-run.")
+        # Save empty results file so downstream agents don't fail
+        os.makedirs("output", exist_ok=True)
+        output_path = f"output/scout_results_{datetime.now().strftime('%y%m%d')}.json"
+        with open(output_path, "w") as f:
+            json.dump([], f)
+        return
 
-    # Deduplicate
-    all_listings = deduplicate_listings(all_listings)
-    all_listings = [l for l in all_listings if is_individual_listing(l)]
-    print(f"  [Filter] {len(all_listings)} listings after filtering search result pages")
+    print(f"  {len(input_listings)} listings to process")
+
+    for item in input_listings:
+        url = item.get("url")
+        if not url:
+            continue
+
+        print(f"  Fetching: {url[:80]}")
+        try:
+            # Use Exa to fetch page content
+            result = exa.get_contents([url], text={"max_characters": 3000})
+            if result.results:
+                page = result.results[0]
+                listing = {
+                    "job_title": page.title or "Unknown Role",
+                    "company": None,
+                    "location": "Singapore",
+                    "apply_url": url,
+                    "description": page.text or ""
+                }
+
+                # Clean up LinkedIn-style titles
+                raw_title = listing["job_title"]
+                if " hiring " in raw_title:
+                    listing["company"] = raw_title.split(" hiring ")[0].strip()
+                    listing["job_title"] = raw_title.split(" hiring ")[1].split(" in ")[0].strip()
+                if " | LinkedIn" in listing["job_title"]:
+                    listing["job_title"] = listing["job_title"].split(" | LinkedIn")[0].strip()
+
+                all_listings.append(listing)
+        except Exception as e:
+            print(f"  [Scout] Error fetching {url}: {e}")
 
     # Score each listing
-    print(f"Scoring {len(all_listings)} listings...")
+    print(f"  Scoring {len(all_listings)} listings...")
     scored_listings = []
     for i, listing in enumerate(all_listings):
         print(f"  Scoring {i+1}/{len(all_listings)}: {listing.get('job_title')} at {listing.get('company')}")
