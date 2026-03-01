@@ -64,4 +64,4 @@ jobs:
           git add config/user_profile_proposed.yaml || true
           git add output/ || true
           git diff --staged --quiet || git commit -m "Weekly run — $(date +'%y%m%d')"
-          git push
+          git push --force-with-lease
