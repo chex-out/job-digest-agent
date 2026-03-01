@@ -359,4 +359,62 @@ Separate the two outputs with the delimiter: ---CHANGELOG---"""
     changelog = parts[1].strip() if len(parts) > 1 else "No changes recorded."
 
     updated_yaml = re.sub(r"^```yaml\n?", "", updated_yaml)
-    updated_yaml = re.sub(r"\n?```$", "",
+    updated_yaml = re.sub(r"\n?```$", "", updated_yaml).strip()
+
+    return updated_yaml, changelog
+
+
+def save_updated_profile(updated_yaml, changelog):
+    """Save proposed profile and changelog for review."""
+    with open("config/user_profile_proposed.yaml", "w") as f:
+        f.write(updated_yaml)
+
+    today = datetime.now().strftime("%y%m%d")
+    os.makedirs("output", exist_ok=True)
+    changelog_path = f"output/synthesis_changelog_{today}.txt"
+    with open(changelog_path, "w") as f:
+        f.write(f"Synthesis Changelog — {today}\n\n")
+        f.write(changelog)
+
+    print(f"  [Synthesiser] Proposed profile saved to config/user_profile_proposed.yaml")
+    print(f"  [Synthesiser] Changelog saved to {changelog_path}")
+
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+
+def main():
+    import json
+    global json
+    print("Starting synthesiser agent...")
+
+    replies = fetch_digest_replies()
+    if not replies:
+        print("  No replies to process.")
+        return
+
+    revisions, learnings, preference_feedback = parse_feedback(replies)
+
+    # Save learnings
+    if learnings:
+        update_application_feedback_log(learnings)
+
+    # Save preference feedback
+    if preference_feedback:
+        update_preference_feedback_log(preference_feedback)
+
+    # Apply revisions
+    if revisions:
+        drive_service, docs_service = get_drive_service()
+        for revision in revisions:
+            apply_revision(drive_service, docs_service, revision)
+
+    # Synthesise preference profile
+    updated_yaml, changelog = synthesise_preferences()
+    if updated_yaml:
+        save_updated_profile(updated_yaml, changelog)
+
+    print("\nSynthesiser complete.")
+
+
+if __name__ == "__main__":
+    main()
