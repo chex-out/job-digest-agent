@@ -210,10 +210,11 @@ Standout Positives: {listing.get('standout_positives')}
 Produce a concise notes document with these sections:
 1. Role Summary — 2 sentences on the role and why it scored well
 2. Company Snapshot — from the review data above
-3. Resume Changes — bullet points of key changes made and anything needing candidate verification
-4. Cover Letter Changes — bullet points of key changes and assumptions to verify
-5. Gaps to Address — any JD requirements not covered by the resume that the candidate may want to address
-6. Red Flags — if any
+3. Why Work Here — 3-4 bullet points answering "Why would you like to work at this company?" Draw from the company snapshot, standout positives, industry, and what is known about the company's mission or product. Frame from the candidate's perspective — career progression, strategic scope, tech stack, market position, or growth stage. Keep each bullet to one sentence.
+4. Resume Changes — bullet points of key changes made and anything needing candidate verification
+5. Cover Letter Changes — bullet points of key changes and assumptions to verify
+6. Gaps to Address — any JD requirements not covered by the resume that the candidate may want to address
+7. Red Flags — if any
 
 Keep it scannable. The candidate should be able to review this in under 2 minutes."""
 
