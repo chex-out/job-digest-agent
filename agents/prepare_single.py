@@ -271,7 +271,6 @@ Return JSON only, no code fences:
 # ── Prepare Materials ─────────────────────────────────────────────────────────
 
 def tailor_resume(listing):
-    """Use Claude to tailor the base resume for a specific listing."""
     with open("config/application_feedback_log.yaml", "r") as f:
         app_feedback = f.read()
 
@@ -297,7 +296,10 @@ Tailor the resume for this specific role by:
 5. Keep all dates, titles, and company names unchanged
 6. Return the full tailored resume in Markdown format
 
-After the resume, add a section titled "## Changes Made" listing each change and why, plus any assumptions to verify."""
+After the resume, add a section titled "## Changes Made" that lists:
+- Each specific change made and why
+- Any areas where you made assumptions that the candidate should verify before submitting
+- Any gaps between the JD requirements and the candidate's experience worth addressing in the cover letter"""
 
     response = anthropic_client.messages.create(
         model="claude-opus-4-6",
@@ -308,7 +310,6 @@ After the resume, add a section titled "## Changes Made" listing each change and
 
 
 def tailor_cover_letter(listing):
-     """Use Claude to tailor the base cover letter for a specific listing."""
     with open("config/application_feedback_log.yaml", "r") as f:
         app_feedback = f.read()
 
@@ -338,7 +339,9 @@ Skills Match: {listing.get('skills_match')}/10 — {listing.get('skills_match_ra
 - Keep the letter to 4 paragraphs maximum
 - Return the final cover letter only, no preamble
 
-After the cover letter, add a section titled "## Changes Made" listing what was adjusted and any assumptions to verify."""
+After the cover letter, add a section titled "## Changes Made" listing:
+- What you adjusted and why
+- Any assumptions made that the candidate should verify"""
 
     response = anthropic_client.messages.create(
         model="claude-opus-4-6",
