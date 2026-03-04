@@ -37,3 +37,4 @@ jobs:
           git add output/ || true
           git diff --staged --quiet || git commit -m "Feedback collection — $(date +'%y%m%d')"
           git push --force-with-lease
+          git add config/processed_reply_ids.yaml || true
