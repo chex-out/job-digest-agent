@@ -28,18 +28,34 @@ def fetch_digest_replies():
 
     mail = imaplib.IMAP4_SSL("imap.gmail.com")
     mail.login(gmail_address, gmail_password)
-    mail.select("inbox")
 
-    # Search more broadly for any unseen emails with Re: in subject
-    status, messages = mail.search(None, 'UNSEEN')
-    print(f"  [Synthesiser] Total unseen emails in inbox: {len(messages[0].split()) if messages[0] else 0}")
+    # Search All Mail to avoid Gmail threading issues
+    mail.select('"[Gmail]/All Mail"')
+
+    # Search for digest replies by subject within the last 7 days
+    from email.utils import parsedate_to_datetime
+    from datetime import timedelta
+    cutoff = (datetime.now() - timedelta(days=7)).strftime("%d-%b-%Y")
+    status, messages = mail.search(None, f'(SUBJECT "Weekly Job Digest" SINCE {cutoff})')
+
+    print(f"  [Synthesiser] Emails matching digest subject in last 7 days: {len(messages[0].split()) if messages[0] else 0}")
 
     if status != "OK" or not messages[0]:
-        print("  [Synthesiser] No unseen emails found")
+        print("  [Synthesiser] No digest emails found")
         mail.logout()
         return []
 
+    # Load already processed message IDs to avoid reprocessing
+    processed_ids_path = "config/processed_reply_ids.yaml"
+    processed_ids = set()
+    if os.path.exists(processed_ids_path):
+        with open(processed_ids_path, "r") as f:
+            data = yaml.safe_load(f) or {}
+            processed_ids = set(data.get("ids", []))
+
     replies = []
+    new_processed_ids = set()
+
     for msg_id in messages[0].split():
         status, msg_data = mail.fetch(msg_id, "(RFC822)")
         if status != "OK":
@@ -52,15 +68,17 @@ def fetch_digest_replies():
         if isinstance(subject, bytes):
             subject = subject.decode()
 
-        print(f"  [Synthesiser] Found unseen email: '{subject}'")
+        message_id = msg.get("Message-ID", "").strip()
+        print(f"  [Synthesiser] Found: '{subject}'")
 
-        # Check if it's a reply to the digest
-        if "Weekly Job Digest" not in subject and "weekly job digest" not in subject.lower():
-            print(f"  [Synthesiser] Skipping — not a digest reply")
+        # Only process replies
+        if not subject.strip().startswith("Re:"):
+            print(f"  [Synthesiser] Skipping — not a reply")
             continue
 
-        if not subject.startswith("Re:"):
-            print(f"  [Synthesiser] Skipping — not a reply (no Re: prefix)")
+        # Skip already processed replies
+        if message_id and message_id in processed_ids:
+            print(f"  [Synthesiser] Skipping — already processed")
             continue
 
         # Extract body
@@ -76,12 +94,16 @@ def fetch_digest_replies():
         # Strip quoted original email
         body = re.split(r"On .* wrote:", body)[0].strip()
 
-        print(f"  [Synthesiser] Accepted reply. Body preview: {body[:100]}")
-
         if body:
+            print(f"  [Synthesiser] Accepted reply. Body preview: {body[:100]}")
             replies.append({"date": msg["Date"], "body": body})
+            if message_id:
+                new_processed_ids.add(message_id)
 
-        mail.store(msg_id, "+FLAGS", "\\Seen")
+    # Save processed message IDs
+    all_processed = processed_ids | new_processed_ids
+    with open(processed_ids_path, "w") as f:
+        yaml.dump({"ids": list(all_processed)}, f)
 
     mail.logout()
     print(f"  [Synthesiser] {len(replies)} replies fetched")
