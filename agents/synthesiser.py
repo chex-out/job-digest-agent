@@ -30,9 +30,12 @@ def fetch_digest_replies():
     mail.login(gmail_address, gmail_password)
     mail.select("inbox")
 
-    status, messages = mail.search(None, '(SUBJECT "Weekly Job Digest" UNSEEN)')
+    # Search more broadly for any unseen emails with Re: in subject
+    status, messages = mail.search(None, 'UNSEEN')
+    print(f"  [Synthesiser] Total unseen emails in inbox: {len(messages[0].split()) if messages[0] else 0}")
+
     if status != "OK" or not messages[0]:
-        print("  [Synthesiser] No new digest replies found")
+        print("  [Synthesiser] No unseen emails found")
         mail.logout()
         return []
 
@@ -48,9 +51,19 @@ def fetch_digest_replies():
         subject = decode_header(msg["Subject"])[0][0]
         if isinstance(subject, bytes):
             subject = subject.decode()
-        if not subject.startswith("Re:"):
+
+        print(f"  [Synthesiser] Found unseen email: '{subject}'")
+
+        # Check if it's a reply to the digest
+        if "Weekly Job Digest" not in subject and "weekly job digest" not in subject.lower():
+            print(f"  [Synthesiser] Skipping — not a digest reply")
             continue
 
+        if not subject.startswith("Re:"):
+            print(f"  [Synthesiser] Skipping — not a reply (no Re: prefix)")
+            continue
+
+        # Extract body
         body = ""
         if msg.is_multipart():
             for part in msg.walk():
@@ -63,9 +76,10 @@ def fetch_digest_replies():
         # Strip quoted original email
         body = re.split(r"On .* wrote:", body)[0].strip()
 
+        print(f"  [Synthesiser] Accepted reply. Body preview: {body[:100]}")
+
         if body:
             replies.append({"date": msg["Date"], "body": body})
-            print(f"  [Synthesiser] Found reply: {body[:80]}...")
 
         mail.store(msg_id, "+FLAGS", "\\Seen")
 
