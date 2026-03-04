@@ -1,0 +1,42 @@
+name: Prepare Single Listing
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Job listing URL'
+        required: true
+        type: string
+      force:
+        description: 'Prepare even if below threshold'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run prepare_single agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+          GOOGLE_OAUTH_TOKEN: ${{ secrets.GOOGLE_OAUTH_TOKEN }}
+        run: |
+          if [ "${{ inputs.force }}" = "true" ]; then
+            python agents/prepare_single.py "${{ inputs.url }}" --force
+          else
+            python agents/prepare_single.py "${{ inputs.url }}"
+          fi
