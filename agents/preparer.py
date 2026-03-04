@@ -109,7 +109,13 @@ def create_google_doc(drive_service, docs_service, folder_id, title, content):
 
 def tailor_resume(listing):
     """Use Claude to tailor the base resume for a specific listing."""
+    with open("config/application_feedback_log.yaml", "r") as f:
+        app_feedback = f.read()
+
     prompt = f"""You are tailoring a candidate's resume for a specific job listing.
+
+## Learned Preferences
+{app_feedback}
 
 ## Base Resume
 {base_resume}
@@ -146,7 +152,13 @@ After the resume, add a section titled "## Changes Made" that lists:
 
 def tailor_cover_letter(listing):
     """Use Claude to tailor the base cover letter for a specific listing."""
+    with open("config/application_feedback_log.yaml", "r") as f:
+        app_feedback = f.read()
+        
     prompt = f"""You are tailoring a candidate's cover letter for a specific job listing.
+
+## Learned Preferences
+{app_feedback}
 
 ## Base Cover Letter (including agent instructions at the bottom)
 {base_cover_letter}
